@@ -26,11 +26,7 @@ const TYPE_ICONS = {
 let allPokemon = [];
 
 function getTypesHtml(types) {
-    return types.map(t => `
-        <span class="type-pill bg-${t.toLowerCase()}">
-            <img src="${TYPE_ICONS[t]}" class="type-icon"> ${t}
-        </span>
-    `).join('');
+    return types.map(t => `<span class="type-pill bg-${t.toLowerCase()}"><img src="${TYPE_ICONS[t]}" class="type-icon"> ${t}</span>`).join('');
 }
 
 async function init() {
@@ -46,40 +42,29 @@ function render(list) {
     const noResults = document.getElementById('no-results');
     container.innerHTML = "";
     
-    // Implicación Punto 6.a.v: Mostrar/Ocultar mensaje "Sin resultados"
-    if (list.length === 0) {
-        noResults.classList.remove('d-none');
-    } else {
-        noResults.classList.add('d-none');
-        list.forEach(pk => {
-            const idStr = pk.id.toString().padStart(3, '0');
-            const col = document.createElement('div');
-            col.className = "col";
-            col.innerHTML = `
-                <div class="card h-100 shadow-sm pokemon-card border-0">
-                    <div class="img-container"><img src="${URL_THUMB}${idStr}.png" style="width: 100px;"></div>
-                    <div class="card-body d-flex flex-column text-start">
-                        <small class="text-muted">#${idStr}</small>
-                        <h5 class="fw-bold">${pk.name.english}</h5>
-                        <div class="mb-3">${getTypesHtml(pk.type)}</div>
-                        <button class="btn btn-primary btn-sm mt-auto rounded-pill fw-bold" onclick="showDetail(${pk.id})">Ver detalles</button>
-                    </div>
-                </div>`;
-            container.appendChild(col);
-        });
-    }
+    noResults.classList.toggle('d-none', list.length > 0);
+
+    list.forEach(pk => {
+        const idStr = pk.id.toString().padStart(3, '0');
+        const col = document.createElement('div');
+        col.className = "col";
+        col.innerHTML = `
+            <div class="card shadow-sm pokemon-card border-0">
+                <div class="img-container"><img src="${URL_THUMB}${idStr}.png" class="img-thumb"></div>
+                <div class="card-body d-flex flex-column">
+                    <small class="text-muted">#${idStr} • ${pk.species}</small>
+                    <h5 class="fw-bold mb-2">${pk.name.english}</h5>
+                    <div class="mb-3">${getTypesHtml(pk.type)}</div>
+                    <button class="btn btn-primary btn-sm mt-auto rounded-pill fw-bold" onclick="showDetail(${pk.id})">Ver detalles</button>
+                </div>
+            </div>`;
+        container.appendChild(col);
+    });
 }
 
-// Implicaciones Casos de Prueba 6.a (i, ii, iii, iv)
 document.getElementById('filter-input').addEventListener('keyup', (e) => {
-    const val = e.target.value.toLowerCase().trim(); // Case Insensitive (i) y Trim (ii)
-    
-    if (val === "") {
-        render(allPokemon); // Cadena vacía (iii)
-    } else {
-        const filtered = allPokemon.filter(p => p.name.english.toLowerCase().includes(val)); // Parcial (iv)
-        render(filtered);
-    }
+    const val = e.target.value.toLowerCase().trim();
+    render(allPokemon.filter(p => p.name.english.toLowerCase().includes(val)));
 });
 
 function showDetail(id) {
@@ -88,23 +73,28 @@ function showDetail(id) {
     Swal.fire({
         title: `<span class="fw-bold text-uppercase">${p.name.english}</span>`,
         html: `
-            <div class="text-center">
-                <img src="${URL_HIRES}${idStr}.png" class="img-fluid mb-4" style="max-height: 200px;">
-                <div class="text-start p-3 bg-light rounded-3 shadow-sm">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span><strong>Nº:</strong> #${idStr}</span>
+            <div class="container-fluid p-0">
+                <img src="${URL_HIRES}${idStr}.png" class="modal-img">
+                <div class="modal-info-box">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-dark rounded-pill">Nº #${idStr}</span>
                         <div>${getTypesHtml(p.type)}</div>
                     </div>
-                    <p class="small text-muted mb-3"><em>${p.description}</em></p>
-                    <div class="row g-2 text-center">
-                        <div class="col-4"><div class="stat-box"><span class="stat-label">HP</span><span class="stat-value text-success">${p.base.HP}</span></div></div>
+                    <div class="modal-description"><em>"${p.description}"</em></div>
+                    <div class="stat-grid">
+                        <div class="stat-box"><span class="stat-label">HP</span><span class="stat-value text-success">${p.base.HP}</span></div>
                         <div class="col-4"><div class="stat-box"><span class="stat-label">ATK</span><span class="stat-value text-danger">${p.base.Attack}</span></div></div>
                         <div class="col-4"><div class="stat-box"><span class="stat-label">DEF</span><span class="stat-value text-primary">${p.base.Defense}</span></div></div>
+                        <div class="col-4"><div class="stat-box"><span class="stat-label">S. ATK</span><span class="stat-value text-warning">${p.base["Sp. Attack"]}</span></div></div>
+                        <div class="col-4"><div class="stat-box"><span class="stat-label">S. DEF</span><span class="stat-value text-info">${p.base["Sp. Defense"]}</span></div></div>
+                        <div class="col-4"><div class="stat-box"><span class="stat-label">SPD</span><span class="stat-value text-dark">${p.base.Speed}</span></div></div>
                     </div>
                 </div>
             </div>`,
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#333'
+        confirmButtonText: 'Cerrar Registro',
+        confirmButtonColor: '#333',
+        width: '450px',
+        showCloseButton: true
     });
 }
 
