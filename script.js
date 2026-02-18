@@ -155,5 +155,5 @@ function abrirModal(id) {
     });
 }
 
-// Inicializar la aplicación
+// Inicializar la aplicación para cargar
 cargarPokemon();
