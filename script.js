@@ -1,8 +1,11 @@
-const API_URL = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/pokedex.json";
-const URL_THUMB = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/images/pokedex/thumbnails/";
-const URL_HIRES = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/images/pokedex/hires/";
+/**
+ * Configuración de recursos y constantes
+ */
+const urlDatos = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/pokedex.json";
+const urlImgMiniatura = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/images/pokedex/thumbnails/";
+const urlImgDetalle = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/images/pokedex/hires/";
 
-const TYPE_ICONS = {
+const iconosTipos = {
     "Grass": "https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/grass.svg",
     "Poison": "https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/poison.svg",
     "Fire": "https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/fire.svg",
@@ -23,79 +26,131 @@ const TYPE_ICONS = {
     "Dark": "https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/dark.svg"
 };
 
-let allPokemon = [];
+let todosLosPokemon = [];
 
-function getTypesHtml(types) {
-    return types.map(t => `<span class="type-pill bg-${t.toLowerCase()}"><img src="${TYPE_ICONS[t]}" class="type-icon"> ${t}</span>`).join('');
+function crearHtmlTipos(tipos) {
+    return tipos.map(tipo => `
+        <span class="etiquetaTipo bg-${tipo.toLowerCase()}">
+            <img src="${iconosTipos[tipo]}" class="iconoTipo"> ${tipo}
+        </span>
+    `).join('');
 }
 
-async function init() {
+async function cargarPokemonDesdeApi() {
     try {
-        const res = await fetch(API_URL);
-        allPokemon = await res.json();
-        render(allPokemon);
-    } catch (err) { console.error(err); }
+        const respuesta = await fetch(urlDatos);
+        todosLosPokemon = await respuesta.json();
+        renderizarListaPokemon(todosLosPokemon);
+    } catch (error) {
+        console.error("Error cargando datos:", error);
+    }
 }
 
-function render(list) {
-    const container = document.getElementById('pokemon-container');
-    const noResults = document.getElementById('no-results');
-    container.innerHTML = "";
-    
-    noResults.classList.toggle('d-none', list.length > 0);
+function renderizarListaPokemon(lista) {
+    const contenedor = document.getElementById('contenedorPokemon');
+    const mensajeVacio = document.getElementById('mensajeSinResultados');
+    if (!contenedor) return;
 
-    list.forEach(pk => {
-        const idStr = pk.id.toString().padStart(3, '0');
-        const col = document.createElement('div');
-        col.className = "col";
-        col.innerHTML = `
-            <div class="card shadow-sm pokemon-card border-0">
-                <div class="img-container"><img src="${URL_THUMB}${idStr}.png" class="img-thumb"></div>
-                <div class="card-body d-flex flex-column">
-                    <small class="text-muted">#${idStr} • ${pk.species}</small>
-                    <h5 class="fw-bold mb-2">${pk.name.english}</h5>
-                    <div class="mb-3">${getTypesHtml(pk.type)}</div>
-                    <button class="btn btn-primary btn-sm mt-auto rounded-pill fw-bold" onclick="showDetail(${pk.id})">Ver detalles</button>
+    contenedor.innerHTML = "";
+
+    if (lista.length === 0) {
+        mensajeVacio.classList.remove('d-none');
+    } else {
+        mensajeVacio.classList.add('d-none');
+        lista.forEach(pk => {
+            const idFormateado = pk.id.toString().padStart(3, '0');
+            const tarjetaHtml = `
+                <div class="col">
+                    <div class="card h-100 shadow-sm tarjetaPokemon">
+                        <div class="contenedorImagenCard" onclick="abrirModalDetalle(${pk.id})">
+                            <img src="${urlImgMiniatura}${idFormateado}.png" style="width: 110px;">
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <div onclick="abrirModalDetalle(${pk.id})" style="cursor:pointer">
+                                <p class="text-muted mb-1 small fw-bold">Nº ${idFormateado}</p>
+                                <h5 class="fw-bold text-dark">${pk.name.english}</h5>
+                                <div class="mb-3">${crearHtmlTipos(pk.type)}</div>
+                            </div>
+                            <button class="btn btn-primary btn-sm rounded-pill mt-auto fw-bold" onclick="abrirModalDetalle(${pk.id})">
+                                Ver detalles
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>`;
-        container.appendChild(col);
-    });
+            `;
+            contenedor.insertAdjacentHTML('beforeend', tarjetaHtml);
+        });
+    }
 }
 
-document.getElementById('filter-input').addEventListener('keyup', (e) => {
-    const val = e.target.value.toLowerCase().trim();
-    render(allPokemon.filter(p => p.name.english.toLowerCase().includes(val)));
+document.getElementById('campoBusqueda').addEventListener('keyup', (evento) => {
+    const busqueda = evento.target.value.toLowerCase().trim();
+    const filtrados = todosLosPokemon.filter(p => p.name.english.toLowerCase().includes(busqueda));
+    renderizarListaPokemon(filtrados);
 });
 
-function showDetail(id) {
-    const p = allPokemon.find(x => x.id === id);
+function abrirModalDetalle(id) {
+    const p = todosLosPokemon.find(pokemon => pokemon.id === id);
     const idStr = p.id.toString().padStart(3, '0');
+
     Swal.fire({
-        title: `<span class="fw-bold text-uppercase">${p.name.english}</span>`,
+        title: `<strong>${p.name.english}</strong>`,
+        // Agregamos el botón de cerrar (la X)
+        showCloseButton: true,
         html: `
-            <div class="container-fluid p-0">
-                <img src="${URL_HIRES}${idStr}.png" class="modal-img">
-                <div class="modal-info-box">
+            <div class="text-center">
+                <img src="${urlImgDetalle}${idStr}.png" class="img-fluid mb-3" style="max-height: 220px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1));">
+                <div class="p-3 rounded bg-white border shadow-sm">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="badge bg-dark rounded-pill">Nº #${idStr}</span>
-                        <div>${getTypesHtml(p.type)}</div>
+                        <span class="badge bg-dark px-3 py-2 rounded-pill">Nº ${idStr}</span>
+                        <div>${crearHtmlTipos(p.type)}</div>
                     </div>
-                    <div class="modal-description"><em>"${p.description}"</em></div>
-                    <div class="stat-grid">
-                        <div class="stat-box"><span class="stat-label">HP</span><span class="stat-value text-success">${p.base.HP}</span></div>
-                        <div class="col-4"><div class="stat-box"><span class="stat-label">ATK</span><span class="stat-value text-danger">${p.base.Attack}</span></div></div>
-                        <div class="col-4"><div class="stat-box"><span class="stat-label">DEF</span><span class="stat-value text-primary">${p.base.Defense}</span></div></div>
-                        <div class="col-4"><div class="stat-box"><span class="stat-label">S. ATK</span><span class="stat-value text-warning">${p.base["Sp. Attack"]}</span></div></div>
-                        <div class="col-4"><div class="stat-box"><span class="stat-label">S. DEF</span><span class="stat-value text-info">${p.base["Sp. Defense"]}</span></div></div>
-                        <div class="col-4"><div class="stat-box"><span class="stat-label">SPD</span><span class="stat-value text-dark">${p.base.Speed}</span></div></div>
+                    <p class="text-start small text-muted bg-light p-2 rounded"><em>"${p.description}"</em></p>
+                    <hr>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <div class="p-2 border rounded bg-white">
+                                <span class="d-block small text-muted fw-bold">HP</span>
+                                <b class="text-success">${p.base.HP}</b>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 border rounded bg-white">
+                                <span class="d-block small text-muted fw-bold">ATAQUE</span>
+                                <b class="text-danger">${p.base.Attack}</b>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 border rounded bg-white">
+                                <span class="d-block small text-muted fw-bold">DEFENSA</span>
+                                <b class="text-primary">${p.base.Defense}</b>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 border rounded bg-white">
+                                <span class="d-block small text-muted fw-bold">SP. ATK</span>
+                                <b class="text-warning">${p.base["Sp. Attack"]}</b>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 border rounded bg-white">
+                                <span class="d-block small text-muted fw-bold">SP. DEF</span>
+                                <b class="text-info">${p.base["Sp. Defense"]}</b>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 border rounded bg-white">
+                                <span class="d-block small text-muted fw-bold">VELOC.</span>
+                                <b style="color: #6f42c1;">${p.base.Speed}</b>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>`,
-        confirmButtonText: 'Cerrar Registro',
-        confirmButtonColor: '#333',
-        width: '450px',
-        showCloseButton: true
+            </div>
+        `,
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#2d3436'
     });
 }
 
-init();
+cargarPokemonDesdeApi();
