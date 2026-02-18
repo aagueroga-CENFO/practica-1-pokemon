@@ -1,6 +1,3 @@
-/**
- * Configuración de recursos y constantes
- */
 const urlDatos = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/pokedex.json";
 const urlImgMiniatura = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/images/pokedex/thumbnails/";
 const urlImgDetalle = "https://raw.githubusercontent.com/Purukitto/pokemon-data.json/master/images/pokedex/hires/";
@@ -36,21 +33,20 @@ function crearHtmlTipos(tipos) {
     `).join('');
 }
 
-async function cargarPokemonDesdeApi() {
+async function cargarPokemon() {
     try {
         const respuesta = await fetch(urlDatos);
         todosLosPokemon = await respuesta.json();
-        renderizarListaPokemon(todosLosPokemon);
+        renderizarCartas(todosLosPokemon);
     } catch (error) {
-        console.error("Error cargando datos:", error);
+        console.error("Error:", error);
     }
 }
 
-function renderizarListaPokemon(lista) {
+function renderizarCartas(lista) {
     const contenedor = document.getElementById('contenedorPokemon');
     const mensajeVacio = document.getElementById('mensajeSinResultados');
     if (!contenedor) return;
-
     contenedor.innerHTML = "";
 
     if (lista.length === 0) {
@@ -58,20 +54,19 @@ function renderizarListaPokemon(lista) {
     } else {
         mensajeVacio.classList.add('d-none');
         lista.forEach(pk => {
-            const idFormateado = pk.id.toString().padStart(3, '0');
+            const idStr = pk.id.toString().padStart(3, '0');
             const tarjetaHtml = `
                 <div class="col">
                     <div class="card h-100 shadow-sm tarjetaPokemon">
-                        <div class="contenedorImagenCard" onclick="abrirModalDetalle(${pk.id})">
-                            <img src="${urlImgMiniatura}${idFormateado}.png" style="width: 110px;">
+                        <div class="contenedorImagenCard" onclick="abrirModal(${pk.id})">
+                            <img src="${urlImgMiniatura}${idStr}.png" style="width: 110px;">
                         </div>
-                        <div class="card-body d-flex flex-column">
-                            <div onclick="abrirModalDetalle(${pk.id})" style="cursor:pointer">
-                                <p class="text-muted mb-1 small fw-bold">Nº ${idFormateado}</p>
-                                <h5 class="fw-bold text-dark">${pk.name.english}</h5>
-                                <div class="mb-3">${crearHtmlTipos(pk.type)}</div>
-                            </div>
-                            <button class="btn btn-primary btn-sm rounded-pill mt-auto fw-bold" onclick="abrirModalDetalle(${pk.id})">
+                        <div class="card-body d-flex flex-column text-center">
+                            <p class="text-muted mb-1 small fw-bold">Nº ${idStr}</p>
+                            <h5 class="fw-bold text-dark mb-0">${pk.name.english}</h5>
+                            <p class="text-muted small mb-2">${pk.species}</p>
+                            <div class="mb-3">${crearHtmlTipos(pk.type)}</div>
+                            <button class="btn btn-primary btn-sm rounded-pill mt-auto fw-bold" onclick="abrirModal(${pk.id})">
                                 Ver detalles
                             </button>
                         </div>
@@ -83,19 +78,23 @@ function renderizarListaPokemon(lista) {
     }
 }
 
-document.getElementById('campoBusqueda').addEventListener('keyup', (evento) => {
-    const busqueda = evento.target.value.toLowerCase().trim();
-    const filtrados = todosLosPokemon.filter(p => p.name.english.toLowerCase().includes(busqueda));
-    renderizarListaPokemon(filtrados);
+document.getElementById('campoBusqueda').addEventListener('keyup', (e) => {
+    const texto = e.target.value.toLowerCase().trim();
+    const filtrados = todosLosPokemon.filter(p => p.name.english.toLowerCase().includes(texto));
+    renderizarCartas(filtrados);
 });
 
-function abrirModalDetalle(id) {
+function abrirModal(id) {
     const p = todosLosPokemon.find(pokemon => pokemon.id === id);
     const idStr = p.id.toString().padStart(3, '0');
 
     Swal.fire({
-        title: `<strong>${p.name.english}</strong>`,
-        // Agregamos el botón de cerrar (la X)
+        title: `
+            <div class="mt-2">
+                <span class="fw-bold d-block">${p.name.english}</span>
+                <small class="text-muted fw-normal" style="font-size: 0.9rem;">${p.species}</small>
+            </div>
+        `,
         showCloseButton: true,
         html: `
             <div class="text-center">
@@ -108,42 +107,12 @@ function abrirModalDetalle(id) {
                     <p class="text-start small text-muted bg-light p-2 rounded"><em>"${p.description}"</em></p>
                     <hr>
                     <div class="row g-2">
-                        <div class="col-4">
-                            <div class="p-2 border rounded bg-white">
-                                <span class="d-block small text-muted fw-bold">HP</span>
-                                <b class="text-success">${p.base.HP}</b>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 border rounded bg-white">
-                                <span class="d-block small text-muted fw-bold">ATAQUE</span>
-                                <b class="text-danger">${p.base.Attack}</b>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 border rounded bg-white">
-                                <span class="d-block small text-muted fw-bold">DEFENSA</span>
-                                <b class="text-primary">${p.base.Defense}</b>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 border rounded bg-white">
-                                <span class="d-block small text-muted fw-bold">SP. ATK</span>
-                                <b class="text-warning">${p.base["Sp. Attack"]}</b>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 border rounded bg-white">
-                                <span class="d-block small text-muted fw-bold">SP. DEF</span>
-                                <b class="text-info">${p.base["Sp. Defense"]}</b>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 border rounded bg-white">
-                                <span class="d-block small text-muted fw-bold">VELOC.</span>
-                                <b style="color: #6f42c1;">${p.base.Speed}</b>
-                            </div>
-                        </div>
+                        <div class="col-4"><div class="p-2 border rounded bg-white"><span class="d-block small text-muted fw-bold">HP</span><b class="text-success">${p.base.HP}</b></div></div>
+                        <div class="col-4"><div class="p-2 border rounded bg-white"><span class="d-block small text-muted fw-bold">ATAQUE</span><b class="text-danger">${p.base.Attack}</b></div></div>
+                        <div class="col-4"><div class="p-2 border rounded bg-white"><span class="d-block small text-muted fw-bold">DEFENSA</span><b class="text-primary">${p.base.Defense}</b></div></div>
+                        <div class="col-4"><div class="p-2 border rounded bg-white"><span class="d-block small text-muted fw-bold">SP. ATK</span><b class="text-warning">${p.base["Sp. Attack"]}</b></div></div>
+                        <div class="col-4"><div class="p-2 border rounded bg-white"><span class="d-block small text-muted fw-bold">SP. DEF</span><b class="text-info">${p.base["Sp. Defense"]}</b></div></div>
+                        <div class="col-4"><div class="p-2 border rounded bg-white"><span class="d-block small text-muted fw-bold">VELOC.</span><b style="color: #6f42c1;">${p.base.Speed}</b></div></div>
                     </div>
                 </div>
             </div>
@@ -153,4 +122,4 @@ function abrirModalDetalle(id) {
     });
 }
 
-cargarPokemonDesdeApi();
+cargarPokemon();
